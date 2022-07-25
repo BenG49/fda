@@ -1,3 +1,6 @@
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
 class Series:
 	def __init__(self, time_start, time_end, data=None, func=None, vals=None):		
 		if data is not None:
@@ -6,7 +9,7 @@ class Series:
 			if vals is None:
 				raise ValueError('Must provide count of times if providing function')
 
-			self.data = [0] * vals
+			self.data = np.zeros(vals)
 			
 			t = time_start
 			delta = (time_end - time_start) / vals
@@ -21,8 +24,8 @@ class Series:
 
 		self.times = [time_start + self.time_delta * i for i in range(len(self.data))]
 
-	def plot(self, ax, c=None, label=None, linestyle=None):
-		ax.plot(self.times, self.data, c=c, label=label, linestyle=linestyle)
+	def plot(self, ax, **kwargs):
+		ax.plot(self.times, self.data, **kwargs)
 
 	def get(self, t):
 		i = int((t - self.times[0]) // self.time_delta)
@@ -30,7 +33,6 @@ class Series:
 
 def naive(series, horizon):
 	start = series.times[-1]
-
 	n = int(horizon // series.time_delta)
 
 	return Series(
@@ -40,9 +42,27 @@ def naive(series, horizon):
 
 def seasonal_naive(series, horizon):
 	start = series.times[-1]
+	n = int(horizon // series.time_delta)
 
 	return Series(
 		start,
 		start + horizon,
 		func=lambda t: series.get(t - 365),
-		vals=len(series.data))
+		vals=n)
+
+def linreg(series, horizon):
+	start = series.times[-1]
+	n = int(horizon // series.time_delta)
+
+	x = np.array(series.times).reshape((-1, 1))
+	y = np.array(series.data).reshape((-1, 1))
+
+	model = LinearRegression().fit(x, y)
+
+	reg = Series(
+		start,
+		start + horizon,
+		func=lambda t: model.predict([[t]]),
+		vals=n)
+
+	return reg
