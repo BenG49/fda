@@ -22,7 +22,7 @@ class Series:
 		
 		self.time_delta = (time_end - time_start) / len(self.data)
 
-		self.times = [time_start + self.time_delta * i for i in range(len(self.data))]
+		self.times = np.linspace(time_start, time_end, len(self.data))
 
 	def plot(self, ax, **kwargs):
 		ax.plot(self.times, self.data, **kwargs)

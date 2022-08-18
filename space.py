@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from skfda import FDataGrid
 
 class Space:
 	# pendulum state space
@@ -27,12 +28,38 @@ class Space:
 		self.c = np.matrix(c)
 		self.d = np.matrix(d)
 
-	def dynamics(self, x, u=None):
-		print(float((self.a * x)[1][0]))
-		return self.a * x + (0 if u is None else self.b * u)
+	def dynamics(self, x, u=None, index=None):
+		out = self.a * x + (0 if u is None else self.b * u)
 
-	def output(self, x, u=None):
-		return self.c * x + (0 if u is None else self.d * u)
+		if index is None:
+			return out
+		
+		return float(out[index][0])
+
+	def output(self, x, u=None, index=None):
+		out = self.c * x + (0 if u is None else self.d * u)
+
+		if index is None:
+			return out
+		
+		return float(out[index][0])
+	
+	'''
+	grid_points: list of axes
+	'''
+	def get_surface(self, grid_points: list):
+		states = len(grid_points)
+
+		data_matrix = np.zeros([states] + [len(grid_points[i]) for i in range(states)])
+
+		for idx in np.ndindex(data_matrix.shape[1:]):
+			mat = np.matrix([[grid_points[i][n]] for i, n in enumerate(idx)])
+			dyn = self.dynamics(mat)
+
+			for i in range(states):
+				data_matrix[tuple([i]) + idx] = dyn[i][0]
+
+		return FDataGrid(data_matrix, grid_points)
 
 if __name__ == '__main__':
 	p = Space.pendulum2d(5)

@@ -1,21 +1,10 @@
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from datetime import datetime
 
 import forecast
+import util
 
-data = pd.read_csv('us.csv').to_numpy()
-
-deltas = [0] * len(data)
-for i in range(1, len(data)):
-	deltas[i] = data[i, 1] - data[i - 1, 1]
-
-data = np.insert(data, 2, deltas, axis=1)
-
-for i in range(len(data[:, 0])):
-	data[i, 0] = datetime.strptime(data[i, 0], '%Y-%m-%d')
+data = util.read_data('us.csv')
 
 FIRST_TIME = data[0, 0]
 LAST_TIME = data[-1, 0]
@@ -26,6 +15,7 @@ HORIZON = 200
 fig, ax = plt.subplots()
 
 ax.xaxis.set_major_locator(ticker.MultipleLocator(60))
+ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x / 10000)))
 # ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%Y'))
 
 cases = forecast.Series(0, len(data), data[:, 1])
@@ -40,6 +30,8 @@ naive.plot(ax, label='Naive', linestyle='--')
 seasonal.plot(ax, label='Seasonal Naive', linestyle='--')
 linreg.plot(ax, label='Linear Regression', linestyle='--')
 
+ax.set_ylabel('10,000 cases')
+ax.set_xlabel('days')
 ax.legend(loc=2)
 
 plt.xticks(rotation=45)
