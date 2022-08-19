@@ -55,17 +55,18 @@ def pendulum_fda():
 	fig = plt.figure()
 	ax = fig.gca(projection='3d')
 
-	l = Space.pendulum2d(5).get_surface(
-		grid_points = [
+	l = Space.pendulum2d(5).get_data(
+		state_axes=[
 			np.arange(-3, 3, 0.5),
 			np.arange(-3, 3, 0.5)
-		])
+		],
+		input_axes=[])
 	l.plot(axes=ax)
 
 	l.to_basis(
 		basis.Tensor([
-			basis.Fourier(n_basis=4, domain_range=l.domain_range[0]),
-			basis.Fourier(n_basis=4, domain_range=l.domain_range[1])
+			basis.Monomial(n_basis=2, domain_range=l.domain_range[0]),
+			basis.Monomial(n_basis=2, domain_range=l.domain_range[1])
 		])
 	).plot(axes=ax)
 
@@ -74,5 +75,36 @@ def pendulum_fda():
 	ax.set_zlabel('change')
 	plt.show()
 
-pendulum_fda()
-# test([BSPLINE, MONOMIAL, FOURIER], min_basis=6, max_basis=8)
+def dcmotor_fda():
+	fig = plt.figure()
+	ax = fig.gca(projection='3d')
+	# fig, ax = plt.subplots()
+
+	l = Space.dcmotor_default().get_data(
+		state_axes=[
+			[0],
+			np.arange(-1000, 1000, 50),
+		],
+		input_axes=[
+			np.arange(-12, 12, 1)
+		]
+	)
+	l.plot(axes=ax)
+	
+	b = l.to_basis(
+		basis.Tensor([
+			basis.Monomial(n_basis=2, domain_range=l.domain_range[0]),
+			basis.Monomial(n_basis=2, domain_range=l.domain_range[1])
+		])
+	)
+	b.plot(axes=ax)
+
+	ax.set_xlabel('velocity (rad/s)')
+	ax.set_ylabel('voltage')
+	ax.set_zlabel('change in velocity (rad/s)')
+	plt.show()
+
+if __name__ == '__main__':
+	# pendulum_fda()
+	dcmotor_fda()
+	# test([BSPLINE, MONOMIAL, FOURIER], min_basis=6, max_basis=8)

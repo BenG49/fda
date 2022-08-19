@@ -18,9 +18,9 @@ class Space:
 		return Space(
 			[[ 0, 1],
 			 [-p, 0]],
-			[],
-			[],
-			[]
+			np.identity(2),
+			np.identity(2),
+			np.identity(2)
 		)
 
 	'''
@@ -29,25 +29,19 @@ class Space:
 	R: resistance
 	V: rad/s/volt
 
-	ex. dcmotor(0.01, 0.0097, 0.12, 97.4)
-
 	STATE: [angle, angular vel]
 	'''
 	def dcmotor(J, K, R, V):
 		return Space(
-			# [[-b / J, K / J],
-			#  [-K / L, -R / L]],
-			# [[  0  ],
-			#  [1 / L]],
-			# [1, 0],
-			# []
 			[[0, 1],
 			 [0, -K / (V * R * J)]],
 			[[0],
 			 [K / (R * J)]],
-			[],
-			[]
+			[0, 1],
+			np.identity(2)
 		)
+	def dcmotor_default():
+		return Space.dcmotor(0.01, 0.0097, 0.12, 97.4)
 
 	def __init__(self, a, b, c, d) -> None:
 		self.a = a
@@ -78,19 +72,36 @@ class Space:
 	'''
 	grid_points: list of axes
 	'''
-	def get_surface(self, grid_points: list):
-		states = len(grid_points)
+	def get_data(self, state_axes: list, input_axes: list):
+		states = len(state_axes)
+		inputs = len(input_axes)
 
-		data_matrix = np.zeros([states] + [len(grid_points[i]) for i in range(states)])
+		# get number of output states
+		outstates = self.output([0]*states)
+		outstates = 1 if type(outstates) is not int else len(outstates)
+
+		data_matrix = np.zeros([outstates] + [len(s) for s in state_axes] + [len(i) for i in input_axes])
 
 		for idx in np.ndindex(data_matrix.shape[1:]):
-			mat = [[grid_points[i][n]] for i, n in enumerate(idx)]
-			dyn = self.dynamics(mat)
+			x = [state_axes[i][idx[i]] for i in range(states)]
 
-			for i in range(states):
-				data_matrix[tuple([i]) + idx] = dyn[i][0]
+			u = None
+			if inputs > 0:
+				u = [input_axes[i - states][idx[i]] for i in range(states, states + inputs)]
 
-		return FDataGrid(data_matrix, grid_points)
+			out = self.output(self.dynamics(x, u))
+			print(f'{x} + {u if u is not None else ""} -> {self.dynamics(x, u)}')
+
+			if outstates == 1:
+				data_matrix[tuple([0]) + idx] = out
+			else:
+				for i in range(states):
+					data_matrix[tuple([i]) + idx] = out[i]
+
+		real_shape = [d for d in data_matrix.shape if d > 1]
+		real_axes = [d for d in state_axes + input_axes if len(d) > 1]
+		
+		return FDataGrid([data_matrix.reshape(real_shape)], real_axes)
 
 def pendulum_phase_space():
 	space = Space.pendulum2d(5)
@@ -115,7 +126,7 @@ def pendulum_phase_space():
 	plt.show()
 
 def dcmotorsim():
-	space = Space.dcmotor(0.01, 0.0097, 0.12, 97.4)
+	space = Space.dcmotor_default()
 
 	max_time = 100
 	x = np.arange(max_time)
